@@ -1,0 +1,53 @@
+{% extends 'expenses/base.html' %}
+{% block content %}
+<div class="container">
+    <h2>{% if expense %}Edit Expense{% else %}Add Expense{% endif %}</h2>
+    <form method="post">
+    {% csrf_token %}
+    
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <strong>There were some errors in the form:</strong>
+            <ul>
+                {% for field, errors in form.errors.items %}
+                    <li>{{ field }}: {{ errors|join:", " }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+
+    <div class="mb-3">
+        <label class="form-label">Title</label>
+        {{ form.title }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Description</label>
+        {{ form.description }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Amount</label>
+        {{ form.amount }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Category</label>
+        {{ form.category }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Payment Method</label>
+        {{ form.payment_method }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Date</label>
+        {{ form.date }}
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Recurring Expense</label>
+        {{ form.is_recurring }}
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a href="{% url 'expense_list' %}" class="btn btn-secondary">Cancel</a>
+</form>
+
+</div>
+{% endblock %}
