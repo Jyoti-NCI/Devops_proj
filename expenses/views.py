@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, redirect, get_object_or_404, Http404
 from django.contrib.auth.decorators import login_required, permission_required
 from django.http import HttpResponse
 from django.contrib.auth import login, logout, authenticate
@@ -11,19 +11,18 @@ from django.template.loader import render_to_string
 from django.utils.html import strip_tags
 from datetime import datetime
 from django.contrib.auth.models import Group
-from django.contrib.auth.decorators import user_passes_test
-
-def is_admin_or_manager(user):
-    return user.is_superuser or user.groups.filter(name__in=["Admin", "Manager"]).exists()
+from .aws_utils.s3_utils import upload_to_s3
+from .aws_utils.sns_utils import send_sns_alert
+from .aws_utils.cloudwatch_utils import log_to_cloudwatch
+from django.conf import settings
+from django.contrib import messages
 
 def sign_up(request):
     if request.method == 'POST':
         form = RegisterForm(request.POST)
         if form.is_valid():
-            user = form.save()
-            group = Group.objects.get(name="User")
-            user.groups.add(group)
-            login(request, user)
+            form.save()
+            messages.success(request, "Registration successful! You can now log in.")
             return redirect('/login')
     else:
         form = RegisterForm()
@@ -35,10 +34,12 @@ def logout_view(request):
 
 # Dashboard view with statistics
 @login_required
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def dashboard(request):
-    expenses = Expense.objects.filter(user=request.user, is_active=True)
-    total_expense = sum(exp.amount for exp in expenses)
+    if request.user.is_superuser:
+        expenses = Expense.objects.all()
+    else:
+        expenses = Expense.objects.filter(user=request.user, is_active=True)
+    total_expense = sum(exp.amount for exp in expenses) if expenses else 0
     category_expenses = {cat: sum(exp.amount for exp in expenses if exp.category == cat) for cat, _ in Expense.CATEGORY_CHOICES}
     return render(request, 'expenses/dashboard.html', {
         'expenses': expenses,
@@ -49,76 +50,131 @@ def dashboard(request):
 # List all expenses with filtering
 @login_required
 def expense_list(request):
-    if request.user.groups.filter(name="Admin").exists():
-        expenses = Expense.objects.filter(is_active=True)  # Admin sees all
+    if request.user.is_superuser:
+        expenses = Expense.objects.all()  # Admin sees all
     else:
         expenses = Expense.objects.filter(user=request.user, is_active=True)  # Users see only theirs
     # Filtering the expenses
-    category_filter = request.GET.get('category')
-    start_date = request.GET.get('start_date')
-    end_date = request.GET.get('end_date')
+    category_filter = request.GET.get('category', '')
+    start_date = request.GET.get('start_date', '')
+    end_date = request.GET.get('end_date', '')
     if category_filter:
         expenses = expenses.filter(category=category_filter)
     if start_date and end_date:
         expenses = expenses.filter(date__range=[start_date, end_date])
-    return render(request, 'expenses/expense_list.html', {'expenses': expenses})
+    return render(request, 'expenses/expense_list.html', {'expenses': expenses, 'expense': Expense, 'selected_category': category_filter,
+        'start_date': start_date,
+        'end_date': end_date})
 
 # Add new expense
 @login_required
-#@permission_required("expenses.add_expense", login_url="/login", raise_exception=True)
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def add_expense(request):
     if request.method == "POST":
-        form = ExpenseForm(request.POST)
+        form = ExpenseForm(request.POST, request.FILES)
         if form.is_valid():
             expense = form.save(commit=False)
             # Assigning logged in user
             expense.user = request.user
+            # Handle receipt upload to S3
+            if request.FILES.get('receipt'):
+                file_obj = request.FILES['receipt']
+                uploaded_url = upload_to_s3(file_obj, settings.AWS_S3_BUCKET_NAME)
+                expense.receipt_url = uploaded_url
+
             expense.save()
+
+            # Send SNS Alert if expense amount is high
+            if expense.amount >= 10000:
+                send_sns_alert(
+                    message=f"⚠️ High Expense Alert!\n\nUser: {request.user.username}\nAmount: ₹{expense.amount}\nCategory: {expense.category}\nTitle: {expense.title}",
+                    subject="High Expense Alert"
+                )
+
+            log_to_cloudwatch(f"[EXPENSE CREATED] ₹{expense.amount} - {expense.category} by {request.user.username}")
+            messages.success(request, 'Expense added successfully!')
             return redirect('expense_list')
         else:
             print("Form is not valid:", form.errors)
     else:
         form = ExpenseForm()
-    return render(request, 'expenses/expense_form.html', {'form': form})
+
+    return render(request, 'expenses/expense_form.html', {'form': form, 'expense': None})
 
 # Update expense
 @login_required
-#@permission_required("expenses.update_expense", login_url="/login", raise_exception=True)
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def update_expense(request, expense_id):
-    expense = get_object_or_404(Expense, id=expense_id, user=request.user, is_active=True)
+    try:
+        if request.user.is_superuser:
+            expense = Expense.objects.get(id=expense_id)
+        else:
+            expense = Expense.objects.get(id=expense_id, user=request.user, is_active=True)
+    except Expense.DoesNotExist:
+        raise Http404("Expense not found")
     if request.method == "POST":
-        form = ExpenseForm(request.POST, instance=expense)
+        form = ExpenseForm(request.POST, request.FILES, instance=expense)
         if form.is_valid():
-            expense.author = request.user
-            form.save()
+            updated_expense = form.save(commit=False)
+             # Upload new receipt to S3 if provided
+            if request.FILES.get('receipt'):
+                file_obj = request.FILES['receipt']
+                uploaded_url = upload_to_s3(file_obj, settings.AWS_S3_BUCKET_NAME)
+                updated_expense.receipt_url = uploaded_url
+
+            updated_expense.save()
+
+            # SNS alert if updated amount is large
+            if updated_expense.amount >= 300:
+                send_sns_alert(
+                    message=f"⚠️ High Expense Updated!\n\nUser: {request.user.username}\nAmount: ₹{updated_expense.amount}\nCategory: {updated_expense.category}\nTitle: {updated_expense.title}",
+                    subject="Updated Expense Alert"
+                )
+
+            log_to_cloudwatch(f"[EXPENSE UPDATED] ₹{updated_expense.amount} - {updated_expense.category} by {request.user.username}")
+            messages.success(request, "Expense updated successfully!")
             return redirect('expense_list')
+        else:
+            print("Update form is invalid:", form.errors)
     else:
         form = ExpenseForm(instance=expense)
-    return render(request, 'expenses/expense_form.html', {'form': form})
+
+    return render(request, 'expenses/expense_form.html', {'form': form, 'expense': expense})
 
 # Delete expense
 @login_required
-#@permission_required("expenses.delete_expense", login_url="/login", raise_exception=True)
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def delete_expense(request, expense_id):
-    expense = get_object_or_404(Expense, id=expense_id, user=request.user, is_active=True)
+    try:
+        if request.user.is_superuser:
+            expense = Expense.objects.get(id=expense_id)
+        else:
+            expense = Expense.objects.get(id=expense_id, user=request.user, is_active=True)
+    except Expense.DoesNotExist:
+        raise Http404("Expense not found")
     if request.method == 'POST':
-        expense.author = request.user
+        title = expense.title
+        amount = expense.amount
+        #expense.is_active = False  # Soft delete
         expense.delete()
-        return redirect('expense_list')
-    return render(request, 'expenses/expense_confirm_delete.html', {'expense': expense})
 
+        log_to_cloudwatch(f"[EXPENSE DELETED] ₹{amount} - {title} by {request.user.username}")
+        messages.success(request, "Expense deleted successfully.")
+        return redirect('expense_list')
+
+    return render(request, 'expenses/expense_confirm_delete.html', {'expense': expense})
 @login_required
-#@permission_required("expenses.export_expenses_pdf", login_url="/login", raise_exception=True)
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def export_expenses_pdf(request):
     category_filter = request.GET.get('category', '').strip()
     start_date = request.GET.get('start_date', '').strip()
     end_date = request.GET.get('end_date', '').strip()
+    print("Exporting with filters:")
+    print("Category:", category_filter)
+    print("Start:", start_date)
+    print("End:", end_date)
 
-    expenses = Expense.objects.filter(user=request.user, is_active=True)
+    #superuser sees all, others see their own
+    if request.user.is_superuser:
+        expenses = Expense.objects.all()
+    else:
+        expenses = Expense.objects.filter(user=request.user, is_active=True)
 
     if category_filter:
         expenses = expenses.filter(category=category_filter)
@@ -132,8 +188,6 @@ def export_expenses_pdf(request):
     return generate_pdf(request, expenses)  
     
 @login_required
-#@permission_required("expenses.generate_pdf", login_url="/login", raise_exception=True) 
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def generate_pdf(request, expenses):
     buffer = BytesIO()
     p = canvas.Canvas(buffer)
@@ -168,27 +222,44 @@ def generate_pdf(request, expenses):
     return response
 
 @login_required
-@user_passes_test(is_admin_or_manager, login_url="/login", redirect_field_name=None)
 def send_email_report(request):
-    expenses = Expense.objects.filter(user=request.user, is_active=True)
+    # Base queryset
+    if request.user.is_superuser:
+        expenses = Expense.objects.all()
+    else:
+        expenses = Expense.objects.filter(user=request.user, is_active=True)
 
-    if not expenses.exists():  
+    # Optional filters (if you later want to filter by GET params like category/date)
+    category_filter = request.GET.get('category', '').strip()
+    start_date = request.GET.get('start_date', '').strip()
+    end_date = request.GET.get('end_date', '').strip()
+
+    if category_filter:
+        expenses = expenses.filter(category=category_filter)
+    if start_date and end_date:
+        expenses = expenses.filter(date__range=[start_date, end_date])
+
+    # No data case
+    if not expenses.exists():
         return HttpResponse("No expenses to report", content_type="text/plain")
 
+    # Generate the PDF file
     pdf_response = generate_pdf(request, expenses)
     pdf_data = pdf_response.content
 
-    subject = "Check Your Expense Report"
-    html_message = render_to_string('expenses/email_report.html', {'user': request.user, 'expenses': expenses})
+    subject = "Your Expense Report"
+    html_message = render_to_string('expenses/email_report.html', {
+        'user': request.user,
+        'expenses': expenses
+    })
     plain_message = strip_tags(html_message)
-    
+
     email = EmailMessage(
         subject,
         plain_message,
-        'jyotijakhar2401@gmail.com',  
-        [request.user.email]
+        'jyotijakhar2401@gmail.com',  # Sender's email
+        [request.user.email]          # Recipient
     )
-
     email.attach('Expense_Report.pdf', pdf_data, 'application/pdf')
     email.send()
 

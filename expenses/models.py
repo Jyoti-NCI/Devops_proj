@@ -37,9 +37,11 @@ class Expense(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     # Soft delete feature i.e., inactive means deleted
     is_active = models.BooleanField(default=True)  
+    receipt_url = models.URLField(blank=True, null=True)
 
     def __str__(self):
         return f"{self.title} - ${self.amount} ({self.category})"
-
-
-# Create your models here.
+        
+    @property
+    def is_post_production_completed(self):
+        return self.amount > 0.0

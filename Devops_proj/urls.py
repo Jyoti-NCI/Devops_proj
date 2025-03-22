@@ -21,12 +21,7 @@ from expenses.views import expense_list
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    # django authentication
-    path('', include("django.contrib.auth.urls")),
     path('', include('expenses.urls')),
-    #path('', views.expense_list, name='home'),
-    #path('expenses/', include('expenses.urls')),
-    #path('login/', auth_views.LoginView.as_view(), name='login'),
-    #path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('accounts/', include('django.contrib.auth.urls')),
 ]
 

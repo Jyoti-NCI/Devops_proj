@@ -11,16 +11,24 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="{% url 'dashboard' %}">Expense Tracker</a>
-            <ul class="navbar-nav ms-auto">
-               {% if user.is_authenticated %}
-               <span class="navbar-text">Logged in as {{user.username}}</span>
-                    {% if user.groups.all.0.name == "Admin" or user.groups.all.0.name == "Manager" %}
-                        <li class="nav-item"><a class="nav-link" href="{% url 'add_expense' %}">Add Expense</a></li>
+            <ul class="navbar-nav ms-auto align-items-center">
+
+                {% if user.is_authenticated %}
+                    <li class="nav-item me-3 text-white"><strong>{{ user.username }}/</strong></li>
+
+                    {% if user.is_superuser %}
+                        <li class="nav-item"><a class="nav-link" href="{% url 'admin:index' %}">Admin Panel</a></li>
                     {% endif %}
+
+                    <li class="nav-item"><a class="nav-link" href="{% url 'add_expense' %}">Add Expense</a></li>
                     <li class="nav-item"><a class="nav-link" href="{% url 'expense_list' %}">Expenses</a></li>
-                    <li class="nav-item"><a class="nav-link btn btn-danger text-white" href="{% url 'logout' %}">Logout</a></li>
+                    <li class="nav-item">
+                        <a class="btn btn-danger text-white ms-2" href="{% url 'logout' %}">Logout</a>
+                    </li>
                 {% else %}
-                    <li class="nav-item"><a class="nav-link btn btn-primary text-white" href="{% url 'login' %}">Login</a></li>
+                    <li class="nav-item">
+                        <a class="btn btn-primary text-white" href="{% url 'login' %}">Login</a>
+                    </li>
                 {% endif %}
             </ul>
         </div>
