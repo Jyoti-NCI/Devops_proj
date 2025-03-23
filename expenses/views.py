@@ -30,7 +30,7 @@ def sign_up(request):
     
 def logout_view(request):
     logout(request)
-    return redirect('login')
+    return redirect('expenses:login')
 
 # Dashboard view with statistics
 @login_required
@@ -92,7 +92,7 @@ def add_expense(request):
 
             log_to_cloudwatch(f"[EXPENSE CREATED] ₹{expense.amount} - {expense.category} by {request.user.username}")
             messages.success(request, 'Expense added successfully!')
-            return redirect('expense_list')
+            return redirect('expenses:expense_list')
         else:
             print("Form is not valid:", form.errors)
     else:
@@ -131,7 +131,7 @@ def update_expense(request, expense_id):
 
             log_to_cloudwatch(f"[EXPENSE UPDATED] ₹{updated_expense.amount} - {updated_expense.category} by {request.user.username}")
             messages.success(request, "Expense updated successfully!")
-            return redirect('expense_list')
+            return redirect('expenses:expense_list')
         else:
             print("Update form is invalid:", form.errors)
     else:
@@ -157,7 +157,7 @@ def delete_expense(request, expense_id):
 
         log_to_cloudwatch(f"[EXPENSE DELETED] ₹{amount} - {title} by {request.user.username}")
         messages.success(request, "Expense deleted successfully.")
-        return redirect('expense_list')
+        return redirect('expenses:expense_list')
 
     return render(request, 'expenses/expense_confirm_delete.html', {'expense': expense})
 @login_required

@@ -30,10 +30,10 @@
     </div>
 </form>
     <!-- Export to PDF Button -->
-    <a href="#" id="export-pdf-btn" class="btn btn-success mt-3"><i class="fas fa-file-pdf"></i> Export to PDF</a>
+    <a href="{% url 'expenses:export_expenses_pdf'%}" id="export-pdf-btn" class="btn btn-success mt-3"><i class="fas fa-file-pdf"></i> Export to PDF</a>
 
     <!-- Email Report Button -->
-    <a href="{% url 'send_email_report' %}" class="btn btn-warning mt-3">Email Report</a>
+    <a href="{% url 'expenses:send_email_report' %}" class="btn btn-warning mt-3">Email Report</a>
 
     <!-- Expense Table -->
     <table class="table table-bordered mt-3">
@@ -66,8 +66,8 @@
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'update_expense' expense.id %}" class="btn btn-warning btn-sm">Edit</a>
-                    <a href="{% url 'delete_expense' expense.id %}" class="btn btn-danger btn-sm">Delete</a>
+                    <a href="{% url 'expenses:update_expense' expense.id %}" class="btn btn-warning btn-sm">Edit</a>
+                    <a href="{% url 'expenses:delete_expense' expense.id %}" class="btn btn-danger btn-sm">Delete</a>
                 </td>
             </tr>
             {% empty %}
@@ -98,7 +98,7 @@
         if (endDate) queryParams.push('end_date=' + encodeURIComponent(endDate));
 
         // Construct the full URL
-        var exportUrl = "{% url 'export_expenses_pdf' %}?" + queryParams.join('&');
+        var exportUrl = "{% url 'expenses:export_expenses_pdf' %}?" + queryParams.join('&');
 
         // Debugging: Log the constructed URL to the console
         console.log("Export PDF URL: " + exportUrl);

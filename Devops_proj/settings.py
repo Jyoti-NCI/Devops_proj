@@ -125,7 +125,7 @@ STATICFILES_DIRS = [
     '/var/www/static/',
 ]
 LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard'
+LOGIN_REDIRECT_URL = 'expenses:dashboard'
 LOGOUT_REDIRECT_URL = 'login'
 
 #Added manually to send expense report to email
