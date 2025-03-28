@@ -2,43 +2,50 @@ version: 0.2
 
 env:
   secrets-manager:
-    SONAR_SECRETS: "arn:aws:secretsmanager:eu-west-1:250738637992:secret:prod/sonar_x24104558-BR59rO"
+    LOGIN: prod/sonar_x24104558:ef0ba6ce04bc5e8b0c73fc1d55c82c8a4ff53f6a
+    HOST: prod/sonar_x24104558:https://sonarcloud.io
+    Organization: prod/sonar_x24104558:jyoti-nci
+    Project: prod/sonar_x24104558:jyoti-nci_sampleproject
 
 phases:
   install:
     runtime-versions:
       python: 3.11
     commands:
-      # Install Java (required for SonarScanner)
-      - yum install -y java-11-amazon-corretto-headless
-      
-      # Install other dependencies
       - pip install --upgrade pip
       - pip install -r requirements.txt pylint
-      - yum install -y jq unzip wget
-      
-      # Install SonarScanner
+      - apt-get update
+      - apt-get install -y jq unzip wget
+      # Install SonarScanner for Python
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
 
   pre_build:
     commands:
-      # Debug: Verify environment variables
-      - echo "SONAR_HOST: ${SONAR_HOST}"
-      - echo "SONAR_ORG: ${SONAR_ORG}"
-      - echo "SONAR_PROJECT: ${SONAR_PROJECT}"
-      - echo "SONAR_LOGIN: ${SONAR_LOGIN:0:4}..." # Show first 4 chars of token
+      - python --version
+      - pylint $(find $CODEBUILD_SRC_DIR -name "*.py") --fail-under=6 || true
 
   build:
     commands:
-      # Run SonarScanner with increased memory
-      - export SONAR_SCANNER_OPTS="-Xmx1024m"
-      - sonar-scanner -v
-      - sonar-scanner -Dsonar.projectKey=${SONAR_PROJECT} -Dsonar.organization=${SONAR_ORG} -Dsonar.sources=. -Dsonar.host.url=${SONAR_HOST} -Dsonar.login=${SONAR_LOGIN}
-      
-      # Verify results
+      # Run Sonar Scanner
+      - sonar-scanner \
+          -Dsonar.projectKey=$Project \
+          -Dsonar.organization=$Organization \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=$HOST \
+          -Dsonar.login=$LOGIN
       - sleep 5
-      - curl -s "${SONAR_HOST}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT}" > result.json
+      - curl "$HOST/api/qualitygates/project_status?projectKey=$Project" > result.json
       - cat result.json
-      - if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then exit 1; fi
+      - |
+        if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then
+          echo "❌ Quality Gate failed"
+          exit 1
+        else
+          echo "✅ Quality Gate passed"
+        fi
+
+artifacts:
+  files:
+    - '*/'
