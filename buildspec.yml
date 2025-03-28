@@ -13,8 +13,9 @@ phases:
       - pip install -r requirements.txt pylint
       - yum update -y
       - yum install -y jq unzip wget
-      # Install Java 17
-      - amazon-linux-extras install java-openjdk17 -y
+      # Install Java 17 (Amazon Corretto)
+      - yum install -y https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.rpm
+      - alternatives --set java /usr/lib/jvm/java-17-amazon-corretto.x86_64/bin/java
       # Verify Java version
       - java -version
       # Install SonarScanner
