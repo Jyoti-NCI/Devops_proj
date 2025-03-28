@@ -1,18 +1,50 @@
 version: 0.2
-phases:
-    install:
-        runtime-versions:
-            python: 3.9
-        commands:
-            - pip install --upgrade pip
-            # Install dependencies needed for running the static analysis
-            - pip install -r requirements.txt pylint
-    pre_build:
-        commands:
-            - python --version
-            - pylint --exit-zero $CODEBUILD_SRC_DIR/*.py
-            - pylint --exit-zero $CODEBUILD_SRC_DIR/emp_payroll/*.py
-artifacts:
-    files:
-        - '**/*'
 
+env:
+  secrets-manager:
+    LOGIN: prod/sonar1:b85a8a56ec00848471b3e1e31596ca9eeeb9b282
+    HOST: prod/sonar1:https://sonarcloud.io
+    Organization: prod/sonar1:Jyoti
+    Project: prod/sonar1:Sampleproject
+phases:
+  install:
+    runtime-versions:
+      python: 3.11
+    commands:
+      - pip install --upgrade pip
+      - pip install -r requirements.txt pylint
+      - apt-get update
+      - apt-get install -y jq unzip wget
+      # Install SonarScanner for Python
+      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
+      - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
+      - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
+
+  pre_build:
+    commands:
+      - python --version
+      - pylint $(find $CODEBUILD_SRC_DIR -name "*.py") --fail-under=6 || true
+
+  build:
+    commands:
+      # Run Sonar Scanner
+      - sonar-scanner \
+          -Dsonar.projectKey=$Project \
+          -Dsonar.organization=$Organization \
+          -Dsonar.sources=. \
+          -Dsonar.host.url=$HOST \
+          -Dsonar.login=$LOGIN
+      - sleep 5
+      - curl "$HOST/api/qualitygates/project_status?projectKey=$Project" > result.json
+      - cat result.json
+      - |
+        if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then
+          echo "❌ Quality Gate failed"
+          exit 1
+        else
+          echo "✅ Quality Gate passed"
+        fi
+
+artifacts:
+  files:
+    - '*/'
