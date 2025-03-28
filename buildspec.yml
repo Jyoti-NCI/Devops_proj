@@ -2,10 +2,7 @@ version: 0.2
 
 env:
   secrets-manager:
-    SONAR_LOGIN: prod/sonar1-login
-    SONAR_HOST: prod/sonar1-host
-    SONAR_ORG: prod/sonar1-org
-    SONAR_PROJECT: prod/sonar1-project
+    LOGIN: "arn:aws:secretsmanager:eu-west-1:250738637992:secret:prod/sonar1-PnQrW4"
 
 phases:
   install:
