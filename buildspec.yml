@@ -2,10 +2,7 @@ version: 0.2
 
 env:
   secrets-manager:
-    LOGIN: prod/sonar_x24104558:ef0ba6ce04bc5e8b0c73fc1d55c82c8a4ff53f6a
-    HOST: prod/sonar_x24104558:https://sonarcloud.io
-    Organization: prod/sonar_x24104558:jyoti-nci
-    Project: prod/sonar_x24104558:jyoti-nci_sampleproject
+    SONAR_SECRET: prod/sonar_x24104558  # Fetch entire secret as plaintext
 
 phases:
   install:
@@ -16,7 +13,7 @@ phases:
       - pip install -r requirements.txt pylint
       - apt-get update
       - apt-get install -y jq unzip wget
-      # Install SonarScanner for Python
+      # Install SonarScanner
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
@@ -25,6 +22,16 @@ phases:
     commands:
       - python --version
       - pylint $(find $CODEBUILD_SRC_DIR -name "*.py") --fail-under=6 || true
+      # Extract values from JSON secret
+      - export LOGIN=$(echo "$SONAR_SECRET" | jq -r '.sonartoken')
+      - export HOST=$(echo "$SONAR_SECRET" | jq -r '.HOST')
+      - export Organization=$(echo "$SONAR_SECRET" | jq -r '.Organization')
+      - export Project=$(echo "$SONAR_SECRET" | jq -r '.Project')
+      # Verify extracted values (for debugging)
+      - echo "LOGIN=$LOGIN"
+      - echo "HOST=$HOST"
+      - echo "Organization=$Organization"
+      - echo "Project=$Project"
 
   build:
     commands:
