@@ -2,29 +2,48 @@ version: 0.2
 
 env:
   secrets-manager:
-    LOGIN: "arn:aws:secretsmanager:eu-west-1:250738637992:secret:prod/sonar_x24104558-BR59rO"
+    SONAR_SECRETS: "arn:aws:secretsmanager:eu-west-1:250738637992:secret:prod/sonar_x24104558-BR59rO"
 
 phases:
   install:
     runtime-versions:
       python: 3.11
     commands:
+      # Install Java (required for SonarScanner)
+      - yum install -y java-11-amazon-corretto-headless
+      
+      # Install other dependencies
       - pip install --upgrade pip
       - pip install -r requirements.txt pylint
-      - yum update -y
       - yum install -y jq unzip wget
+      
+      # Install SonarScanner
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
 
+  pre_build:
+    commands:
+      # Debug: Verify environment variables
+      - echo "SONAR_HOST: ${SONAR_HOST}"
+      - echo "SONAR_ORG: ${SONAR_ORG}"
+      - echo "SONAR_PROJECT: ${SONAR_PROJECT}"
+      - echo "SONAR_LOGIN: ${SONAR_LOGIN:0:4}..." # Show first 4 chars of token
+
   build:
     commands:
+      # Run SonarScanner with increased memory
+      - export SONAR_SCANNER_OPTS="-Xmx1024m"
+      - sonar-scanner -v
       - sonar-scanner \
-          -Dsonar.projectKey=$SONAR_PROJECT \
-          -Dsonar.organization=$SONAR_ORG \
+          -Dsonar.projectKey=${SONAR_PROJECT} \
+          -Dsonar.organization=${SONAR_ORG} \
           -Dsonar.sources=. \
-          -Dsonar.host.url=$SONAR_HOST \
-          -Dsonar.login=$SONAR_LOGIN
+          -Dsonar.host.url=${SONAR_HOST} \
+          -Dsonar.login=${SONAR_LOGIN}
+      
+      # Verify results
       - sleep 5
-      - curl "$SONAR_HOST/api/qualitygates/project_status?projectKey=$SONAR_PROJECT" > result.json
+      - curl -s "${SONAR_HOST}/api/qualitygates/project_status?projectKey=${SONAR_PROJECT}" > result.json
+      - cat result.json
       - if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then exit 1; fi
