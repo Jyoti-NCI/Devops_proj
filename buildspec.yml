@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   secrets-manager:
-    LOGIN: "arn:aws:secretsmanager:eu-west-1:250738637992:secret:prod/sonar1-PnQrW4"
+    LOGIN: "arn:aws:secretsmanager:eu-west-1:250738637992:secret:prod/sonar_x24104558-BR59rO"
 
 phases:
   install:
