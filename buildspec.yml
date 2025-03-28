@@ -13,6 +13,10 @@ phases:
       - pip install -r requirements.txt pylint
       - yum update -y
       - yum install -y jq unzip wget
+      # Install Java 17
+      - amazon-linux-extras install java-openjdk17 -y
+      # Verify Java version
+      - java -version
       # Install SonarScanner
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
@@ -35,7 +39,6 @@ phases:
 
   build:
     commands:
-      # Run SonarScanner (single-line command, no backslashes)
       - sonar-scanner -Dsonar.projectKey=$Project -Dsonar.organization=$Organization -Dsonar.sources=. -Dsonar.host.url=$HOST -Dsonar.login=$LOGIN
       - sleep 5
       - curl "$HOST/api/qualitygates/project_status?projectKey=$Project" > result.json
