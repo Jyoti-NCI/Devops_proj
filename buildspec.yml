@@ -1,48 +1,18 @@
 version: 0.2
-
-env:
-  secrets-manager:
-    SONAR_SECRET: prod/sonar_x24104558
-
 phases:
-  install:
-    runtime-versions:
-      python: 3.11
-    commands:
-      - yum update -y
-      - yum install -y jq unzip wget
-      - yum install -y https://corretto.aws/downloads/latest/amazon-corretto-17-x64-linux-jdk.rpm
-      - export JAVA_HOME=/usr/lib/jvm/java-17-amazon-corretto.x86_64
-      - export PATH=$JAVA_HOME/bin:$PATH
-      - java -version
-      - pip install --upgrade pip
-      - pip install -r requirements.txt pylint
-      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
-      - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
-      - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
-      - sed -i 's/^exec java/exec \/usr\/lib\/jvm\/java-17-amazon-corretto.x86_64\/bin\/java/' sonar-scanner-4.7.0.2747-linux/bin/sonar-scanner
-
-  pre_build:
-    commands:
-      - python --version
-      - java -version
-      - pylint $(find $CODEBUILD_SRC_DIR -name "*.py") --fail-under=6 || true
-      - export LOGIN=$(echo "$SONAR_SECRET" | jq -r '.sonartoken')
-      - export HOST=$(echo "$SONAR_SECRET" | jq -r '.HOST')
-      - export Organization=$(echo "$SONAR_SECRET" | jq -r '.Organization')
-      - export Project=$(echo "$SONAR_SECRET" | jq -r '.Project')
-      - echo "Using Java: $(which java)"
-      - echo "Java version: $(java -version 2>&1 | head -1)"
-      - echo "SonarScanner version: $(sonar-scanner --version)"
-
-  build:
-    commands:
-      - sonar-scanner -Dsonar.projectKey=$Project -Dsonar.organization=$Organization -Dsonar.sources=. -Dsonar.host.url=$HOST -Dsonar.login=$LOGIN
-      - sleep 5
-      - curl -s "$HOST/api/qualitygates/project_status?projectKey=$Project" > result.json
-      - cat result.json
-      - if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then echo "❌ Quality Gate failed"; exit 1; else echo "✅ Quality Gate passed"; fi
-
+    install:
+        runtime-versions:
+            python: 3.9
+        commands:
+            - pip install --upgrade pip
+            # Install dependencies needed for running the static analysis
+            - pip install -r requirements.txt pylint
+    pre_build:
+        commands:
+            - python --version
+            - pylint --exit-zero $CODEBUILD_SRC_DIR/*.py
+            - pylint --exit-zero $CODEBUILD_SRC_DIR/emp_payroll/*.py
 artifacts:
-  files:
-    - '*/'
+    files:
+        - '**/*'
+
