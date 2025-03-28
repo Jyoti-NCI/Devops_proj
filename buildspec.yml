@@ -35,12 +35,7 @@ phases:
       # Run SonarScanner with increased memory
       - export SONAR_SCANNER_OPTS="-Xmx1024m"
       - sonar-scanner -v
-      - sonar-scanner \
-          -Dsonar.projectKey=${SONAR_PROJECT} \
-          -Dsonar.organization=${SONAR_ORG} \
-          -Dsonar.sources=. \
-          -Dsonar.host.url=${SONAR_HOST} \
-          -Dsonar.login=${SONAR_LOGIN}
+      - sonar-scanner -Dsonar.projectKey=${SONAR_PROJECT} -Dsonar.organization=${SONAR_ORG} -Dsonar.sources=. -Dsonar.host.url=${SONAR_HOST} -Dsonar.login=${SONAR_LOGIN}
       
       # Verify results
       - sleep 5
