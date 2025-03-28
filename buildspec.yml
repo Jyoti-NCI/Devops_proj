@@ -2,10 +2,11 @@ version: 0.2
 
 env:
   secrets-manager:
-    LOGIN: prod/sonar1:b85a8a56ec00848471b3e1e31596ca9eeeb9b282
-    HOST: prod/sonar1:https://sonarcloud.io
-    Organization: prod/sonar1:Jyoti
-    Project: prod/sonar1:Sampleproject
+    SONAR_LOGIN: prod/sonar1-login
+    SONAR_HOST: prod/sonar1-host
+    SONAR_ORG: prod/sonar1-org
+    SONAR_PROJECT: prod/sonar1-project
+
 phases:
   install:
     runtime-versions:
@@ -15,36 +16,18 @@ phases:
       - pip install -r requirements.txt pylint
       - apt-get update
       - apt-get install -y jq unzip wget
-      # Install SonarScanner for Python
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
 
-  pre_build:
-    commands:
-      - python --version
-      - pylint $(find $CODEBUILD_SRC_DIR -name "*.py") --fail-under=6 || true
-
   build:
     commands:
-      # Run Sonar Scanner
       - sonar-scanner \
-          -Dsonar.projectKey=$Project \
-          -Dsonar.organization=$Organization \
+          -Dsonar.projectKey=$SONAR_PROJECT \
+          -Dsonar.organization=$SONAR_ORG \
           -Dsonar.sources=. \
-          -Dsonar.host.url=$HOST \
-          -Dsonar.login=$LOGIN
+          -Dsonar.host.url=$SONAR_HOST \
+          -Dsonar.login=$SONAR_LOGIN
       - sleep 5
-      - curl "$HOST/api/qualitygates/project_status?projectKey=$Project" > result.json
-      - cat result.json
-      - |
-        if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then
-          echo "❌ Quality Gate failed"
-          exit 1
-        else
-          echo "✅ Quality Gate passed"
-        fi
-
-artifacts:
-  files:
-    - '*/'
+      - curl "$SONAR_HOST/api/qualitygates/project_status?projectKey=$SONAR_PROJECT" > result.json
+      - if [ "$(jq -r '.projectStatus.status' result.json)" = "ERROR" ]; then exit 1; fi
