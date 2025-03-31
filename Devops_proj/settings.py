@@ -28,6 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['x24104558expensetracker1-env.eba-kvnjcenq.eu-west-1.elasticbeanstalk.com',
 '172.31.2.101']
 
+# adding comments to rtest sona
 
 # Application definition
 
