@@ -1,12 +1,11 @@
 version: 0.2
 
 env:
-  secrets-manager:
-    LOGIN: prod/sonar_x24104558:d5d777cc1030a16bee505e4036daa3b89e27558a
-    HOST: prod/sonar_x24104558:https://sonarcloud.io
-    Organization: prod/sonar_x24104558:jyoti-nci
-    Project: prod/sonar_x24104558:Jyoti-NCI_Devops_proj
-
+parameter-store:
+    LOGIN: "/prod/sonar_x24104558/LOGIN"
+    HOST: "/prod/sonar_x24104558/HOST"
+    Organization: "/prod/sonar_x24104558/Organization"
+    Project: "/prod/sonar_x24104558/Project"
 phases:
   install:
     runtime-versions:
