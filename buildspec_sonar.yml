@@ -14,4 +14,4 @@ phases:
       - cd Devops_proj
       - ls -al
       - echo "Running SonarScanner..."
-      - sonar-scanner -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=$SONARQUBE_TOKEN
+      - sonar-scanner
