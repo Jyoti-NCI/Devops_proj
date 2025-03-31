@@ -15,9 +15,6 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from django.contrib.auth import views as auth_views
-from expenses import views
-from expenses.views import expense_list
 
 urlpatterns = [
     path('admin/', admin.site.urls),
