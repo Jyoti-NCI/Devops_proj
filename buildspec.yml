@@ -1,11 +1,12 @@
 version: 0.2
 
 env:
-parameter-store:
+  parameter-store:
     LOGIN: "/prod/sonar_x24104558/LOGIN"
     HOST: "/prod/sonar_x24104558/HOST"
     Organization: "/prod/sonar_x24104558/Organization"
     Project: "/prod/sonar_x24104558/Project"
+
 phases:
   install:
     runtime-versions:
