@@ -3,24 +3,14 @@ version: 0.2
 phases:
   install:
     runtime-versions:
-      java: corretto11
+      java: corretto17  # Changed from corretto11 to corretto17
     commands:
       - echo "Installing SonarScanner..."
-      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.8.0.2856-linux.zip
-      - unzip sonar-scanner-cli-4.8.0.2856-linux.zip
-      - export PATH=$PATH:$(pwd)/sonar-scanner-4.8.0.2856-linux/bin
-
-  pre_build:
-    commands:
-      - echo "Preparing analysis..."
-      - cd Devops_proj
-      - ls -al
+      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+      - unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+      - export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
 
   build:
     commands:
-      - echo "Running SonarScanner analysis..."
+      - cd Devops_proj
       - sonar-scanner -X -Dsonar.projectKey=Jyoti-NCI_Devops_proj -Dsonar.organization=jyoti-nci -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=ba5691a99c3c04411596e027811534411d7c1170 -Dsonar.sources=. -Dsonar.exclusions=**/settings.py -Dsonar.ci.enabled=true -Dsonar.scm.disabled=true
-
-artifacts:
-  files:
-    - '**/*'
