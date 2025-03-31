@@ -25,7 +25,8 @@ SECRET_KEY = 'm=n85xtlz$c7b-jt@og-s!s+!v&s)s(lv@1!zpdepoqq7ty+#2'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['x24104558expensetracker1-env.eba-kvnjcenq.eu-west-1.elasticbeanstalk.com']
+ALLOWED_HOSTS = ['x24104558expensetracker1-env.eba-kvnjcenq.eu-west-1.elasticbeanstalk.com',
+'172.31.2.101']
 
 
 # Application definition
