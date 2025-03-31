@@ -2,7 +2,7 @@ version: 0.2
 
 env:
   variables:
-    LOGIN: "d5d777cc1030a16bee505e4036daa3b89e27558a"
+    LOGIN: "46457370e9d67793c91d4588f5f8c7b8961a6841"
     HOST: "https://sonarcloud.io"
     Organization: "jyoti-nci"
     Project: "Jyoti-NCI_Devops_proj"
@@ -15,8 +15,10 @@ phases:
       - pip install --upgrade pip
       - pip install -r requirements.txt pylint
       - yum update -y
-      - yum install -y jq unzip wget
-      # Install SonarScanner for Python
+      - yum install -y jq unzip wget java-11-openjdk
+      # Verify Java
+      - java -version
+      # Install SonarScanner
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
       - export PATH=$PATH:$PWD/sonar-scanner-4.7.0.2747-linux/bin
@@ -24,18 +26,23 @@ phases:
   pre_build:
     commands:
       - python --version
+      - echo "Files in directory:"
+      - find . -type f
       - pylint $(find $CODEBUILD_SRC_DIR -name "*.py") --fail-under=6 || true
 
   build:
     commands:
-      # Run Sonar Scanner
-      - sonar-scanner \
+      # Debug connection first
+      - echo "Testing SonarCloud connection..."
+      - curl -v $HOST
+      # Run Sonar Scanner with debug
+      - sonar-scanner -X \
           -Dsonar.projectKey=$Project \
           -Dsonar.organization=$Organization \
           -Dsonar.sources=. \
           -Dsonar.host.url=$HOST \
           -Dsonar.login=$LOGIN
-      - sleep 5
+      - sleep 10
       - curl "$HOST/api/qualitygates/project_status?projectKey=$Project" > result.json
       - cat result.json
       - |
