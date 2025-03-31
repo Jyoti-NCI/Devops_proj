@@ -1,11 +1,11 @@
 version: 0.2
 
 env:
-  parameter-store:
-    LOGIN: "/prod/sonar_x24104558/LOGIN"
-    HOST: "/prod/sonar_x24104558/HOST"
-    Organization: "/prod/sonar_x24104558/Organization"
-    Project: "/prod/sonar_x24104558/Project"
+  variables:
+    LOGIN: "d5d777cc1030a16bee505e4036daa3b89e27558a"
+    HOST: "https://sonarcloud.io"
+    Organization: "jyoti-nci"
+    Project: "Jyoti-NCI_Devops_proj"
 
 phases:
   install:
