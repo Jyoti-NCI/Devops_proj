@@ -14,13 +14,4 @@ phases:
     commands:
       - cd Devops_proj
       - echo "Running SonarScanner analysis..."
-      - sonar-scanner -X \
-          -Dsonar.projectKey=Jyoti-NCI_Devops_proj \
-          -Dsonar.organization=jyoti-nci \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.login=ba5691a99c3c04411596e027811534411d7c1170 \
-          -Dsonar.sources=. \
-          -Dsonar.exclusions=**/settings.py \
-          -Dsonar.ci.activated=true \
-          -Dsonar.ci.automaticAnalysis.disabled=true \
-          -Dsonar.scm.disabled=true
+      - sonar-scanner -X -Dsonar.projectKey=Jyoti-NCI_Devops_proj -Dsonar.organization=jyoti-nci -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=ba5691a99c3c04411596e027811534411d7c1170 -Dsonar.sources=. -Dsonar.exclusions=**/settings.py -Dsonar.ci.activated=true -Dsonar.ci.automaticAnalysis.disabled=true -Dsonar.scm.disabled=true
