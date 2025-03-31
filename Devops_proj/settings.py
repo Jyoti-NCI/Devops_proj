@@ -26,7 +26,7 @@ SECRET_KEY = 'm=n85xtlz$c7b-jt@og-s!s+!v&s)s(lv@1!zpdepoqq7ty+#2'
 DEBUG = True
 
 ALLOWED_HOSTS = ['x24104558expensetracker1-env.eba-kvnjcenq.eu-west-1.elasticbeanstalk.com',
-'172.31.2.101', '108.129.52.16',]
+'172.31.2.101', '108.129.52.16', '172.31.44.153',]
 
 # adding comments to rtest sona
 
