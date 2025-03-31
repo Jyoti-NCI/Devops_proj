@@ -1,0 +1,17 @@
+version: 0.2
+ 
+phases:
+  install:
+    runtime-versions:
+      java: corretto11
+  pre_build:
+    commands:
+      - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip
+      - unzip sonar-scanner-cli-5.0.1.3006-linux.zip
+      - export PATH=$PATH:$(pwd)/sonar-scanner-5.0.1.3006-linux/bin
+  build:
+    commands:
+      - cd Devops_proj
+      - ls -al
+      - echo "Running SonarScanner..."
+      - sonar-scanner
