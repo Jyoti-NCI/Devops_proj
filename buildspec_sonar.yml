@@ -12,25 +12,16 @@ phases:
 
   pre_build:
     commands:
-      - echo "Verifying Java version..."
+      - echo "Verifying environment..."
       - java -version
-      - echo "Testing SonarCloud connection..."
+      - sonar-scanner --version
       - curl -I https://sonarcloud.io/api/system/status
 
   build:
     commands:
       - cd Devops_proj
       - echo "Running SonarScanner analysis..."
-      - sonar-scanner -X \
-          -Dsonar.projectKey=Jyoti-NCI_Devops_proj \
-          -Dsonar.organization=jyoti-nci \
-          -Dsonar.host.url=https://sonarcloud.io \
-          -Dsonar.login=ba5691a99c3c04411596e027811534411d7c1170 \
-          -Dsonar.sources=. \
-          -Dsonar.exclusions=**/settings.py \
-          -Dsonar.analysis.ci.enabled=true \
-          -Dsonar.analysis.automaticAnalysis.disabled=true \
-          -Dsonar.scm.disabled=true
+      - sonar-scanner -X -Dsonar.projectKey=Jyoti-NCI_Devops_proj -Dsonar.organization=jyoti-nci -Dsonar.host.url=https://sonarcloud.io -Dsonar.login=ba5691a99c3c04411596e027811534411d7c1170 -Dsonar.sources=. -Dsonar.exclusions=**/settings.py -Dsonar.ci.enabled=true -Dsonar.scm.disabled=true
 
 artifacts:
   files:
