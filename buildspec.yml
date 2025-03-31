@@ -14,8 +14,8 @@ phases:
     commands:
       - pip install --upgrade pip
       - pip install -r requirements.txt pylint
-      - apt-get update
-      - apt-get install -y jq unzip wget
+      - yum update -y
+      - yum install -y jq unzip wget
       # Install SonarScanner for Python
       - wget https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-4.7.0.2747-linux.zip
       - unzip sonar-scanner-cli-4.7.0.2747-linux.zip
